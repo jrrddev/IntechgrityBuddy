@@ -384,7 +384,9 @@ export default function StudentWorkspacePage() {
     entries: Array<{ html: string; css: string }>;
     index: number;
   }>({ entries: [], index: -1 });
-  const [activeTab, setActiveTab] = useState<"html" | "css" | "split">("split");
+  const [activeTab, setActiveTab] = useState<"none" | "html" | "css" | "split">(
+    "split"
+  );
   const [showPreview, setShowPreview] = useState(true);
   const [previewKey, setPreviewKey] = useState(0);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">(
@@ -730,6 +732,23 @@ export default function StudentWorkspacePage() {
             <div className="flex items-center gap-1 bg-slate-200/70 p-1 rounded-xl">
               <button
                 type="button"
+                onClick={() => {
+                  setActiveTab("none");
+                  setShowPreview(true);
+                }}
+                title="Hide code editors to maximize preview space"
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors ${
+                  activeTab === "none"
+                    ? "bg-white text-slate-900 shadow-sm"
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                <Eye className="w-3.5 h-3.5 text-emerald-600" />
+                None
+              </button>
+
+              <button
+                type="button"
                 onClick={() => setActiveTab("html")}
                 className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors ${
                   activeTab === "html"
@@ -831,57 +850,65 @@ export default function StudentWorkspacePage() {
           {/* Editors + Preview Split */}
           <div className="flex-1 min-h-0 flex flex-col">
             {/* Code Editors Area */}
-            <div
-              className={`min-h-0 ${
-                showPreview ? "h-1/2" : "flex-1"
-              } grid ${
-                activeTab === "split"
-                  ? "grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-slate-800"
-                  : "grid-cols-1"
-              } bg-slate-950`}
-            >
-              {(activeTab === "html" || activeTab === "split") && (
-                <div className="flex flex-col min-h-0 h-full">
-                  <div className="px-3 py-1.5 bg-slate-900 border-b border-slate-800 flex items-center justify-between text-[11px]">
-                    <span className="font-semibold text-amber-300 flex items-center gap-1.5">
-                      <FileCode className="w-3.5 h-3.5" />
-                      index.html
-                    </span>
-                    <span className="text-slate-400">{htmlLines} lines</span>
+            {activeTab !== "none" && (
+              <div
+                className={`min-h-0 ${
+                  showPreview ? "h-1/2" : "flex-1"
+                } grid ${
+                  activeTab === "split"
+                    ? "grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-slate-800"
+                    : "grid-cols-1"
+                } bg-slate-950`}
+              >
+                {(activeTab === "html" || activeTab === "split") && (
+                  <div className="flex flex-col min-h-0 h-full">
+                    <div className="px-3 py-1.5 bg-slate-900 border-b border-slate-800 flex items-center justify-between text-[11px]">
+                      <span className="font-semibold text-amber-300 flex items-center gap-1.5">
+                        <FileCode className="w-3.5 h-3.5" />
+                        index.html
+                      </span>
+                      <span className="text-slate-400">{htmlLines} lines</span>
+                    </div>
+                    <textarea
+                      value={htmlCode}
+                      onChange={(e) => updateHtmlCode(e.target.value)}
+                      spellCheck={false}
+                      placeholder="Paste or write your HTML code here..."
+                      className="flex-1 w-full resize-none bg-slate-950 text-slate-100 font-mono text-xs leading-relaxed p-3 focus:outline-none placeholder:text-slate-600"
+                    />
                   </div>
-                  <textarea
-                    value={htmlCode}
-                    onChange={(e) => updateHtmlCode(e.target.value)}
-                    spellCheck={false}
-                    placeholder="Paste or write your HTML code here..."
-                    className="flex-1 w-full resize-none bg-slate-950 text-slate-100 font-mono text-xs leading-relaxed p-3 focus:outline-none placeholder:text-slate-600"
-                  />
-                </div>
-              )}
+                )}
 
-              {(activeTab === "css" || activeTab === "split") && (
-                <div className="flex flex-col min-h-0 h-full">
-                  <div className="px-3 py-1.5 bg-slate-900 border-b border-slate-800 flex items-center justify-between text-[11px]">
-                    <span className="font-semibold text-sky-300 flex items-center gap-1.5">
-                      <FileSpreadsheet className="w-3.5 h-3.5" />
-                      style.css
-                    </span>
-                    <span className="text-slate-400">{cssLines} lines</span>
+                {(activeTab === "css" || activeTab === "split") && (
+                  <div className="flex flex-col min-h-0 h-full">
+                    <div className="px-3 py-1.5 bg-slate-900 border-b border-slate-800 flex items-center justify-between text-[11px]">
+                      <span className="font-semibold text-sky-300 flex items-center gap-1.5">
+                        <FileSpreadsheet className="w-3.5 h-3.5" />
+                        style.css
+                      </span>
+                      <span className="text-slate-400">{cssLines} lines</span>
+                    </div>
+                    <textarea
+                      value={cssCode}
+                      onChange={(e) => updateCssCode(e.target.value)}
+                      spellCheck={false}
+                      placeholder="Paste or write your CSS styles here..."
+                      className="flex-1 w-full resize-none bg-slate-950 text-slate-100 font-mono text-xs leading-relaxed p-3 focus:outline-none placeholder:text-slate-600"
+                    />
                   </div>
-                  <textarea
-                    value={cssCode}
-                    onChange={(e) => updateCssCode(e.target.value)}
-                    spellCheck={false}
-                    placeholder="Paste or write your CSS styles here..."
-                    className="flex-1 w-full resize-none bg-slate-950 text-slate-100 font-mono text-xs leading-relaxed p-3 focus:outline-none placeholder:text-slate-600"
-                  />
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            )}
 
             {/* Live Preview Pane */}
             {showPreview && (
-              <div className="h-1/2 min-h-[200px] flex flex-col border-t border-slate-300 bg-white">
+              <div
+                className={`${
+                  activeTab === "none"
+                    ? "flex-1 min-h-[320px]"
+                    : "h-1/2 min-h-[200px] border-t border-slate-300"
+                } flex flex-col bg-white`}
+              >
                 <div className="px-3 py-1.5 bg-slate-100 border-b border-slate-200 flex items-center justify-between gap-2 text-xs">
                   <div className="flex items-center gap-2">
                     <button
