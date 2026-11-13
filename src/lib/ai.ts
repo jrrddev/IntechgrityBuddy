@@ -212,7 +212,7 @@ async function callGemini(params: {
       contents,
       generationConfig: {
         temperature: 0.4,
-        maxOutputTokens: 1200,
+        maxOutputTokens: 8192,
       },
     }),
   });
@@ -225,6 +225,7 @@ async function callGemini(params: {
 
   const text =
     data?.candidates?.[0]?.content?.parts
+      ?.filter((p: { thought?: boolean }) => !p.thought)
       ?.map((p: { text?: string }) => p.text || "")
       .join("")
       .trim() || "";
@@ -264,7 +265,7 @@ async function callOpenAICompatible(params: {
       model: params.model,
       messages,
       temperature: 0.4,
-      max_tokens: 1200,
+      max_tokens: 4096,
     }),
   });
 

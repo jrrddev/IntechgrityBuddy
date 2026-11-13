@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Code2, Lock, Sparkles, User } from "lucide-react";
+import { Lock, Sparkles, User } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -47,9 +48,13 @@ export default function LoginPage() {
       <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden">
         <div className="bg-gradient-to-r from-indigo-600 to-blue-600 px-6 py-7 text-white">
           <div className="flex items-center gap-3 mb-2">
-            <div className="p-2.5 bg-white/15 rounded-xl backdrop-blur-sm">
-              <Code2 className="w-7 h-7 text-white" />
-            </div>
+            <Image
+              src="/logo.png"
+              alt="IntechgrityBuddy logo"
+              width={48}
+              height={48}
+              className="w-12 h-12 rounded-xl object-cover shadow-md border border-white/20"
+            />
             <div>
               <h1 className="text-2xl font-bold tracking-tight">
                 IntechgrityBuddy

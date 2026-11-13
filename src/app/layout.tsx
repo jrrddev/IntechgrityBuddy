@@ -16,6 +16,11 @@ export const metadata: Metadata = {
   title: "IntechgrityBuddy — HTML & CSS Portfolio AI Tutor",
   description:
     "Beginner-friendly AI coding tutor for HTML & CSS portfolio lessons with separate HTML/CSS context, live preview, and classroom admin controls.",
+  icons: {
+    icon: "/logo.png",
+    shortcut: "/logo.png",
+    apple: "/logo.png",
+  },
 };
 
 export default function RootLayout({

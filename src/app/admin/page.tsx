@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -14,7 +15,6 @@ import {
   Plus,
   RefreshCw,
   Settings,
-  Shield,
   Trash2,
   UserCheck,
   UserPlus,
@@ -405,9 +405,13 @@ export default function AdminDashboardPage() {
       {/* Header */}
       <header className="bg-white border-b border-slate-200 px-6 py-3 flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center">
-            <Shield className="w-5 h-5" />
-          </div>
+          <Image
+            src="/logo.png"
+            alt="IntechgrityBuddy logo"
+            width={36}
+            height={36}
+            className="w-9 h-9 rounded-xl object-cover shadow-sm"
+          />
           <div>
             <h1 className="font-bold text-slate-900 text-base leading-none">
               IntechgrityBuddy Admin Console

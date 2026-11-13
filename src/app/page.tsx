@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   AlertCircle,
+  ArrowLeft,
   Check,
-  Code2,
   Columns2,
   Copy,
   Eye,
@@ -14,12 +15,13 @@ import {
   FileCode,
   FileSpreadsheet,
   LogOut,
-  RotateCcw,
+  Redo2,
   Save,
   Send,
   Shield,
   Sparkles,
   Trash2,
+  Undo2,
 } from "lucide-react";
 
 interface UserProfile {
@@ -378,8 +380,13 @@ export default function StudentWorkspacePage() {
 
   const [htmlCode, setHtmlCode] = useState("");
   const [cssCode, setCssCode] = useState("");
+  const [historyState, setHistoryState] = useState<{
+    entries: Array<{ html: string; css: string }>;
+    index: number;
+  }>({ entries: [], index: -1 });
   const [activeTab, setActiveTab] = useState<"html" | "css" | "split">("html");
   const [showPreview, setShowPreview] = useState(true);
+  const [previewKey, setPreviewKey] = useState(0);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">(
     "idle"
   );
@@ -414,9 +421,15 @@ export default function StudentWorkspacePage() {
         }
 
         const profile: UserProfile = meData.user;
+        const initialHtml = profile.saved_html || STARTER_HTML;
+        const initialCss = profile.saved_css || STARTER_CSS;
         setUser(profile);
-        setHtmlCode(profile.saved_html || STARTER_HTML);
-        setCssCode(profile.saved_css || STARTER_CSS);
+        setHtmlCode(initialHtml);
+        setCssCode(initialCss);
+        setHistoryState({
+          entries: [{ html: initialHtml, css: initialCss }],
+          index: 0,
+        });
         setQuota({
           daily_used: profile.daily_used,
           daily_limit: profile.daily_limit,
@@ -483,9 +496,55 @@ export default function StudentWorkspacePage() {
     }
   }
 
-  function handleLoadStarter() {
-    setHtmlCode(STARTER_HTML);
-    setCssCode(STARTER_CSS);
+  function pushHistory(nextHtml: string, nextCss: string) {
+    setHistoryState((prev) => {
+      const current = prev.entries[prev.index];
+      if (current && current.html === nextHtml && current.css === nextCss) {
+        return prev;
+      }
+      const nextEntries = prev.entries.slice(0, prev.index + 1);
+      nextEntries.push({ html: nextHtml, css: nextCss });
+      if (nextEntries.length > 100) {
+        nextEntries.shift();
+      }
+      return {
+        entries: nextEntries,
+        index: nextEntries.length - 1,
+      };
+    });
+  }
+
+  function updateHtmlCode(nextHtml: string) {
+    setHtmlCode(nextHtml);
+    pushHistory(nextHtml, cssCode);
+  }
+
+  function updateCssCode(nextCss: string) {
+    setCssCode(nextCss);
+    pushHistory(htmlCode, nextCss);
+  }
+
+  const canUndo = historyState.index > 0;
+  const canRedo =
+    historyState.index >= 0 &&
+    historyState.index < historyState.entries.length - 1;
+
+  function handleUndo() {
+    if (!canUndo) return;
+    const nextIdx = historyState.index - 1;
+    const target = historyState.entries[nextIdx];
+    setHtmlCode(target.html);
+    setCssCode(target.css);
+    setHistoryState((prev) => ({ ...prev, index: nextIdx }));
+  }
+
+  function handleRedo() {
+    if (!canRedo) return;
+    const nextIdx = historyState.index + 1;
+    const target = historyState.entries[nextIdx];
+    setHtmlCode(target.html);
+    setCssCode(target.css);
+    setHistoryState((prev) => ({ ...prev, index: nextIdx }));
   }
 
   async function handleSendQuestion(customPrompt?: string) {
@@ -566,7 +625,13 @@ export default function StudentWorkspacePage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <div className="text-center space-y-2">
-          <Code2 className="w-8 h-8 text-indigo-600 animate-pulse mx-auto" />
+          <Image
+            src="/logo.png"
+            alt="IntechgrityBuddy"
+            width={48}
+            height={48}
+            className="w-12 h-12 rounded-xl object-cover animate-pulse mx-auto shadow-sm"
+          />
           <p className="text-sm text-slate-500">
             Loading your HTML &amp; CSS studio...
           </p>
@@ -582,17 +647,18 @@ export default function StudentWorkspacePage() {
       {/* Top Bar */}
       <header className="bg-white border-b border-slate-200 px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 shrink-0">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-sm">
-            <Code2 className="w-5 h-5" />
-          </div>
+          <Image
+            src="/logo.png"
+            alt="IntechgrityBuddy logo"
+            width={36}
+            height={36}
+            className="w-9 h-9 rounded-xl object-cover shadow-sm"
+          />
           <div>
             <div className="flex items-center gap-2">
               <h1 className="font-bold text-slate-900 text-base leading-none">
                 IntechgrityBuddy
               </h1>
-              <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
-                HTML &amp; CSS Portfolio Class
-              </span>
             </div>
             <p className="text-xs text-slate-500 mt-0.5">
               Signed in as{" "}
@@ -701,12 +767,24 @@ export default function StudentWorkspacePage() {
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={handleLoadStarter}
-                title="Load starter portfolio code"
-                className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-slate-600 text-xs font-medium flex items-center gap-1 cursor-pointer"
+                onClick={handleUndo}
+                disabled={!canUndo}
+                title="Undo"
+                className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 disabled:opacity-40 disabled:hover:bg-white text-slate-700 text-xs font-medium flex items-center gap-1 cursor-pointer disabled:cursor-not-allowed"
               >
-                <RotateCcw className="w-3.5 h-3.5" />
-                Starter
+                <Undo2 className="w-3.5 h-3.5" />
+                Undo
+              </button>
+
+              <button
+                type="button"
+                onClick={handleRedo}
+                disabled={!canRedo}
+                title="Redo"
+                className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 disabled:opacity-40 disabled:hover:bg-white text-slate-700 text-xs font-medium flex items-center gap-1 cursor-pointer disabled:cursor-not-allowed"
+              >
+                <Redo2 className="w-3.5 h-3.5" />
+                Redo
               </button>
 
               <button
@@ -769,7 +847,7 @@ export default function StudentWorkspacePage() {
                   </div>
                   <textarea
                     value={htmlCode}
-                    onChange={(e) => setHtmlCode(e.target.value)}
+                    onChange={(e) => updateHtmlCode(e.target.value)}
                     spellCheck={false}
                     placeholder="Paste or write your HTML code here..."
                     className="flex-1 w-full resize-none bg-slate-950 text-slate-100 font-mono text-xs leading-relaxed p-3 focus:outline-none placeholder:text-slate-600"
@@ -788,7 +866,7 @@ export default function StudentWorkspacePage() {
                   </div>
                   <textarea
                     value={cssCode}
-                    onChange={(e) => setCssCode(e.target.value)}
+                    onChange={(e) => updateCssCode(e.target.value)}
                     spellCheck={false}
                     placeholder="Paste or write your CSS styles here..."
                     className="flex-1 w-full resize-none bg-slate-950 text-slate-100 font-mono text-xs leading-relaxed p-3 focus:outline-none placeholder:text-slate-600"
@@ -800,16 +878,28 @@ export default function StudentWorkspacePage() {
             {/* Live Preview Pane */}
             {showPreview && (
               <div className="h-1/2 min-h-[200px] flex flex-col border-t border-slate-300 bg-white">
-                <div className="px-3 py-1.5 bg-slate-100 border-b border-slate-200 flex items-center justify-between text-xs">
-                  <span className="font-semibold text-slate-700 flex items-center gap-1.5">
-                    <Eye className="w-3.5 h-3.5 text-emerald-600" />
-                    Live Portfolio Preview
-                  </span>
-                  <span className="text-[11px] text-slate-500">
+                <div className="px-3 py-1.5 bg-slate-100 border-b border-slate-200 flex items-center justify-between gap-2 text-xs">
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setPreviewKey((k) => k + 1)}
+                      title="Back to your HTML & CSS preview"
+                      className="px-2 py-1 rounded-md border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-[11px] font-semibold flex items-center gap-1 cursor-pointer"
+                    >
+                      <ArrowLeft className="w-3 h-3" />
+                      Back
+                    </button>
+                    <span className="font-semibold text-slate-700 flex items-center gap-1.5">
+                      <Eye className="w-3.5 h-3.5 text-emerald-600" />
+                      Live Portfolio Preview
+                    </span>
+                  </div>
+                  <span className="text-[11px] text-slate-500 hidden sm:inline">
                     Combines index.html + style.css automatically
                   </span>
                 </div>
                 <iframe
+                  key={previewKey}
                   title="Live Portfolio Preview"
                   sandbox="allow-scripts"
                   srcDoc={previewDoc}
