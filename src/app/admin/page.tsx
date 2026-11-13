@@ -50,14 +50,13 @@ interface AdminSettings {
 const MODEL_PRESETS: Record<"gemini" | "groq" | "openrouter", string[]> = {
   gemini: ["gemini-3.5-flash", "gemini-3.8-flash", "gemini-flash-latest"],
   groq: [
-    "llama-3.3-70b-versatile",
-    "llama-3.1-8b-instant",
-    "gemma2-9b-it",
+    "openai/gpt-oss-120b",
+    "openai/gpt-oss-20b",
+    "qwen/qwen3.8-27b",
   ],
   openrouter: [
+    "openrouter/free",
     "google/gemini-2.0-flash-exp:free",
-    "meta-llama/llama-3.3-70b-instruct:free",
-    "qwen/qwen-2.5-coder-32b-instruct:free",
   ],
 };
 

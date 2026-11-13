@@ -1,6 +1,19 @@
 import { getDb } from "./db";
 
 export type AiProvider = "gemini" | "groq" | "openrouter";
+export type ServerChoice = "server1" | "server2" | "server3";
+
+export const SERVER_TO_PROVIDER: Record<ServerChoice, AiProvider> = {
+  server1: "gemini",
+  server2: "groq",
+  server3: "openrouter",
+};
+
+const SERVER_LABELS: Record<ServerChoice, string> = {
+  server1: "Server 1",
+  server2: "Server 2",
+  server3: "Server 3",
+};
 
 export interface AiSettings {
   ai_provider: AiProvider;
@@ -15,8 +28,8 @@ export interface AiSettings {
 
 export const DEFAULT_MODELS: Record<AiProvider, string> = {
   gemini: "gemini-3.5-flash",
-  groq: "llama-3.3-70b-versatile",
-  openrouter: "google/gemini-2.0-flash-exp:free",
+  groq: "openai/gpt-oss-120b",
+  openrouter: "openrouter/free",
 };
 
 export async function getAiSettings(): Promise<AiSettings> {
@@ -114,7 +127,8 @@ export async function generateTutorReply(params: {
   cssCode: string;
   includeCode: boolean;
   history: ChatHistoryItem[];
-}): Promise<{ reply: string; provider: AiProvider; model: string }> {
+  server?: ServerChoice;
+}): Promise<{ reply: string; provider: AiProvider; model: string; server: ServerChoice }> {
   const settings = await getAiSettings();
   const systemPrompt = buildSystemPrompt({
     htmlCode: params.htmlCode,
@@ -123,13 +137,26 @@ export async function generateTutorReply(params: {
     customInstructions: settings.custom_instructions,
   });
 
-  const provider = settings.ai_provider;
-  const model = settings.ai_model || DEFAULT_MODELS[provider];
+  const server: ServerChoice =
+    params.server && params.server in SERVER_TO_PROVIDER
+      ? params.server
+      : settings.ai_provider === "groq"
+      ? "server2"
+      : settings.ai_provider === "openrouter"
+      ? "server3"
+      : "server1";
+
+  const provider = SERVER_TO_PROVIDER[server];
+  const serverLabel = SERVER_LABELS[server];
+  const model =
+    settings.ai_provider === provider && settings.ai_model
+      ? settings.ai_model
+      : DEFAULT_MODELS[provider];
 
   if (provider === "gemini") {
     if (!settings.gemini_api_key) {
       throw new Error(
-        "Gemini API key is not configured yet. Ask your Admin to add a free GEMINI_API_KEY in the Admin Settings."
+        `${serverLabel} is not configured yet. Please try another server or contact your Admin.`
       );
     }
     const reply = await callGemini({
@@ -138,14 +165,15 @@ export async function generateTutorReply(params: {
       systemPrompt,
       history: params.history,
       question: params.question,
+      serverLabel,
     });
-    return { reply, provider, model };
+    return { reply, provider, model, server };
   }
 
   if (provider === "groq") {
     if (!settings.groq_api_key) {
       throw new Error(
-        "Groq API key is not configured yet. Ask your Admin to add a free GROQ_API_KEY in the Admin Settings."
+        `${serverLabel} is not configured yet. Please try another server or contact your Admin.`
       );
     }
     const reply = await callOpenAICompatible({
@@ -155,14 +183,15 @@ export async function generateTutorReply(params: {
       systemPrompt,
       history: params.history,
       question: params.question,
+      serverLabel,
     });
-    return { reply, provider, model };
+    return { reply, provider, model, server };
   }
 
   // OpenRouter
   if (!settings.openrouter_api_key) {
     throw new Error(
-      "OpenRouter API key is not configured yet. Ask your Admin to add an OPENROUTER_API_KEY in the Admin Settings."
+      `${serverLabel} is not configured yet. Please try another server or contact your Admin.`
     );
   }
   const reply = await callOpenAICompatible({
@@ -172,12 +201,13 @@ export async function generateTutorReply(params: {
     systemPrompt,
     history: params.history,
     question: params.question,
+    serverLabel,
     extraHeaders: {
       "HTTP-Referer": "http://localhost:3000",
       "X-Title": "IntechgrityBuddy",
     },
   });
-  return { reply, provider, model };
+  return { reply, provider, model, server };
 }
 
 async function callGemini(params: {
@@ -186,6 +216,7 @@ async function callGemini(params: {
   systemPrompt: string;
   history: ChatHistoryItem[];
   question: string;
+  serverLabel: string;
 }): Promise<string> {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
     params.model
@@ -219,8 +250,12 @@ async function callGemini(params: {
 
   const data = await response.json();
   if (!response.ok) {
-    const errMsg = data?.error?.message || `Gemini API error (${response.status})`;
-    throw new Error(errMsg);
+    const errMsg =
+      data?.error?.message ||
+      `${params.serverLabel} error (${response.status})`;
+    throw new Error(
+      `${params.serverLabel} is temporarily unavailable (${errMsg}). Try switching servers!`
+    );
   }
 
   const text =
@@ -231,7 +266,9 @@ async function callGemini(params: {
       .trim() || "";
 
   if (!text) {
-    throw new Error("Gemini returned an empty response. Please try again.");
+    throw new Error(
+      `${params.serverLabel} returned an empty response. Please try again or switch servers.`
+    );
   }
   return text;
 }
@@ -243,6 +280,7 @@ async function callOpenAICompatible(params: {
   systemPrompt: string;
   history: ChatHistoryItem[];
   question: string;
+  serverLabel: string;
   extraHeaders?: Record<string, string>;
 }): Promise<string> {
   const messages = [
@@ -272,13 +310,18 @@ async function callOpenAICompatible(params: {
   const data = await response.json();
   if (!response.ok) {
     const errMsg =
-      data?.error?.message || `AI Provider API error (${response.status})`;
-    throw new Error(errMsg);
+      data?.error?.message ||
+      `${params.serverLabel} error (${response.status})`;
+    throw new Error(
+      `${params.serverLabel} is temporarily unavailable (${errMsg}). Try switching servers!`
+    );
   }
 
   const text = data?.choices?.[0]?.message?.content?.trim() || "";
   if (!text) {
-    throw new Error("The AI provider returned an empty response. Please try again.");
+    throw new Error(
+      `${params.serverLabel} returned an empty response. Please try again or switch servers.`
+    );
   }
   return text;
 }

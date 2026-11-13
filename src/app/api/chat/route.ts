@@ -1,6 +1,6 @@
 import crypto from "crypto";
 import { NextRequest, NextResponse } from "next/server";
-import { generateTutorReply } from "@/lib/ai";
+import { generateTutorReply, type ServerChoice } from "@/lib/ai";
 import { getCurrentUser } from "@/lib/auth";
 import { getDb, getTodayDateString } from "@/lib/db";
 
@@ -88,6 +88,13 @@ export async function POST(req: NextRequest) {
     const cssCode =
       typeof body.cssCode === "string" ? body.cssCode : user.saved_css;
     const includeCode = body.includeCode !== false;
+    const rawServer = String(body.server || "").toLowerCase();
+    const server: ServerChoice | undefined =
+      rawServer === "server1" ||
+      rawServer === "server2" ||
+      rawServer === "server3"
+        ? rawServer
+        : undefined;
 
     if (!question) {
       return NextResponse.json(
@@ -125,6 +132,7 @@ export async function POST(req: NextRequest) {
       cssCode,
       includeCode,
       history,
+      server,
     });
 
     const userMsgId = crypto.randomUUID();
@@ -190,8 +198,7 @@ export async function POST(req: NextRequest) {
         css_context: "",
         created_at: assistantTime,
       },
-      provider: aiResult.provider,
-      model: aiResult.model,
+      server: aiResult.server,
       quota: updatedQuota,
     });
   } catch (error) {

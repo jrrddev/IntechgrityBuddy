@@ -400,6 +400,9 @@ export default function StudentWorkspacePage() {
   });
   const [question, setQuestion] = useState("");
   const [includeCode, setIncludeCode] = useState(true);
+  const [selectedServer, setSelectedServer] = useState<
+    "server1" | "server2" | "server3"
+  >("server1");
   const [sending, setSending] = useState(false);
   const [chatError, setChatError] = useState("");
 
@@ -564,6 +567,7 @@ export default function StudentWorkspacePage() {
           htmlCode,
           cssCode,
           includeCode,
+          server: selectedServer,
         }),
       });
 
@@ -912,7 +916,7 @@ export default function StudentWorkspacePage() {
 
         {/* Right Pane: IntechgrityBuddy AI Chat */}
         <section className="lg:col-span-5 flex flex-col min-h-[540px] lg:min-h-0 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-          <div className="px-4 py-3 bg-gradient-to-r from-indigo-600 to-blue-600 text-white flex items-center justify-between shrink-0">
+          <div className="px-4 py-3 bg-gradient-to-r from-indigo-600 to-blue-600 text-white flex flex-wrap items-center justify-between gap-2 shrink-0">
             <div className="flex items-center gap-2.5">
               <div className="p-1.5 rounded-lg bg-white/15">
                 <Sparkles className="w-4 h-4" />
@@ -927,16 +931,45 @@ export default function StudentWorkspacePage() {
               </div>
             </div>
 
-            {messages.length > 0 && (
-              <button
-                type="button"
-                onClick={handleClearChat}
-                className="px-2.5 py-1 rounded-lg bg-white/15 hover:bg-white/25 text-xs font-medium flex items-center gap-1 cursor-pointer transition-colors"
+            <div className="flex items-center gap-2">
+              <div
+                className="flex items-center bg-white/15 p-0.5 rounded-lg text-[11px] font-semibold"
+                role="group"
+                aria-label="Select AI server"
               >
-                <Trash2 className="w-3.5 h-3.5" />
-                Clear
-              </button>
-            )}
+                {(
+                  [
+                    { id: "server1", label: "Server 1" },
+                    { id: "server2", label: "Server 2" },
+                    { id: "server3", label: "Server 3" },
+                  ] as const
+                ).map((srv) => (
+                  <button
+                    key={srv.id}
+                    type="button"
+                    onClick={() => setSelectedServer(srv.id)}
+                    className={`px-2 py-1 rounded-md transition-colors cursor-pointer ${
+                      selectedServer === srv.id
+                        ? "bg-white text-indigo-700 shadow-xs"
+                        : "text-indigo-100 hover:text-white"
+                    }`}
+                  >
+                    {srv.label}
+                  </button>
+                ))}
+              </div>
+
+              {messages.length > 0 && (
+                <button
+                  type="button"
+                  onClick={handleClearChat}
+                  className="px-2.5 py-1 rounded-lg bg-white/15 hover:bg-white/25 text-xs font-medium flex items-center gap-1 cursor-pointer transition-colors"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  Clear
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Messages Feed */}
