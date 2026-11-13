@@ -7,3 +7,8 @@ This version has breaking changes — APIs, conventions, and file structure may 
 This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
 
 <!-- END:nextjs-agent-rules -->
+
+## Manual Git Management
+
+- The user handles all Git operations manually.
+- Do **NOT** touch Git or run any `git` commands (including `git init`, `git add`, `git commit`, `git push`, `git pull`, `git reset`, `git checkout`, `git switch`, `git branch`, `git merge`, `git rebase`, `git stash`, or modifying `.git`) unless the user explicitly asks you to.
