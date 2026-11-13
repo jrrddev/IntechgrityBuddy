@@ -48,7 +48,7 @@ interface AdminSettings {
 }
 
 const MODEL_PRESETS: Record<"gemini" | "groq" | "openrouter", string[]> = {
-  gemini: ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.0-flash"],
+  gemini: ["gemini-3.5-flash", "gemini-3.8-flash", "gemini-flash-latest"],
   groq: [
     "llama-3.3-70b-versatile",
     "llama-3.1-8b-instant",
@@ -103,7 +103,7 @@ export default function AdminDashboardPage() {
   const [users, setUsers] = useState<AdminUserRow[]>([]);
   const [settings, setSettings] = useState<AdminSettings>({
     ai_provider: "gemini",
-    ai_model: "gemini-2.5-flash",
+    ai_model: "gemini-3.5-flash",
     has_gemini_key: false,
     has_groq_key: false,
     has_openrouter_key: false,

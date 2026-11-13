@@ -176,11 +176,24 @@ const globalForDb = globalThis as unknown as {
 
 export function getDb(): Client {
   if (!globalForDb.tursoClient) {
-    const url = process.env.TURSO_DATABASE_URL?.trim() || "file:local.db";
+    const configuredUrl = process.env.TURSO_DATABASE_URL?.trim() || "";
     const authToken = process.env.TURSO_AUTH_TOKEN?.trim() || undefined;
+    const isRemote =
+      configuredUrl.startsWith("libsql://") ||
+      configuredUrl.startsWith("https://") ||
+      configuredUrl.startsWith("http://");
+
+    let url = configuredUrl || "file:local.db";
+    if (isRemote && !authToken) {
+      console.warn(
+        "[IntechgrityBuddy] Remote TURSO_DATABASE_URL is set without TURSO_AUTH_TOKEN. Falling back to file:local.db until TURSO_AUTH_TOKEN is configured."
+      );
+      url = "file:local.db";
+    }
+
     globalForDb.tursoClient = createClient({
       url,
-      authToken,
+      authToken: url.startsWith("file:") ? undefined : authToken,
     });
   }
   return globalForDb.tursoClient;
@@ -257,7 +270,7 @@ async function runSchemaAndSeed(): Promise<void> {
   // Seed default settings if absent
   const defaultSettings: Array<[string, string]> = [
     ["ai_provider", process.env.AI_PROVIDER || "gemini"],
-    ["ai_model", "gemini-2.5-flash"],
+    ["ai_model", "gemini-3.5-flash"],
     ["default_daily_limit", "20"],
     ["default_total_limit", "100"],
     [

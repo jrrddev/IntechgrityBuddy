@@ -14,7 +14,7 @@ export interface AiSettings {
 }
 
 export const DEFAULT_MODELS: Record<AiProvider, string> = {
-  gemini: "gemini-2.5-flash",
+  gemini: "gemini-3.5-flash",
   groq: "llama-3.3-70b-versatile",
   openrouter: "google/gemini-2.0-flash-exp:free",
 };
