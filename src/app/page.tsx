@@ -8,6 +8,8 @@ import {
   AlertCircle,
   ArrowLeft,
   Check,
+  ChevronDown,
+  ChevronUp,
   Columns2,
   Copy,
   Eye,
@@ -17,11 +19,13 @@ import {
   LogOut,
   Redo2,
   Save,
+  Search,
   Send,
   Shield,
   Sparkles,
   Trash2,
   Undo2,
+  X,
 } from "lucide-react";
 
 interface UserProfile {
@@ -389,6 +393,9 @@ export default function StudentWorkspacePage() {
   );
   const [showPreview, setShowPreview] = useState(true);
   const [previewKey, setPreviewKey] = useState(0);
+  const [showFind, setShowFind] = useState(false);
+  const [findQuery, setFindQuery] = useState("");
+  const [findMatchIndex, setFindMatchIndex] = useState(0);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">(
     "idle"
   );
@@ -410,6 +417,9 @@ export default function StudentWorkspacePage() {
 
   const chatEndRef = useRef<HTMLDivElement | null>(null);
   const initialLoadedRef = useRef(false);
+  const htmlTextareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const cssTextareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const findInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     async function loadSession() {
@@ -550,6 +560,68 @@ export default function StudentWorkspacePage() {
     setHtmlCode(target.html);
     setCssCode(target.css);
     setHistoryState((prev) => ({ ...prev, index: nextIdx }));
+  }
+
+  const findMatches = useMemo(() => {
+    const q = findQuery.trim().toLowerCase();
+    if (!q) return [] as Array<{ file: "html" | "css"; start: number; end: number }>;
+
+    const matches: Array<{ file: "html" | "css"; start: number; end: number }> = [];
+    const scan = (source: string, file: "html" | "css") => {
+      const lower = source.toLowerCase();
+      let pos = 0;
+      while (pos <= lower.length - q.length) {
+        const idx = lower.indexOf(q, pos);
+        if (idx === -1) break;
+        matches.push({ file, start: idx, end: idx + q.length });
+        pos = idx + Math.max(1, q.length);
+      }
+    };
+
+    if (activeTab === "html" || activeTab === "split") {
+      scan(htmlCode, "html");
+    }
+    if (activeTab === "css" || activeTab === "split") {
+      scan(cssCode, "css");
+    }
+    return matches;
+  }, [findQuery, htmlCode, cssCode, activeTab]);
+
+  const safeMatchIndex =
+    findMatches.length === 0
+      ? -1
+      : ((findMatchIndex % findMatches.length) + findMatches.length) %
+        findMatches.length;
+
+  function focusMatch(index: number) {
+    if (findMatches.length === 0) return;
+    const wrapped =
+      ((index % findMatches.length) + findMatches.length) % findMatches.length;
+    setFindMatchIndex(wrapped);
+    const match = findMatches[wrapped];
+    const textarea =
+      match.file === "html" ? htmlTextareaRef.current : cssTextareaRef.current;
+    if (!textarea) return;
+
+    textarea.focus();
+    textarea.setSelectionRange(match.start, match.end);
+    const lineNum = textarea.value.slice(0, match.start).split("\n").length - 1;
+    textarea.scrollTop = Math.max(
+      0,
+      lineNum * 19.5 - textarea.clientHeight / 3
+    );
+  }
+
+  function handleToggleFind() {
+    if (showFind) {
+      setShowFind(false);
+      return;
+    }
+    if (activeTab === "none") {
+      setActiveTab("split");
+    }
+    setShowFind(true);
+    setTimeout(() => findInputRef.current?.focus(), 0);
   }
 
   async function handleSendQuestion(customPrompt?: string) {
@@ -812,6 +884,20 @@ export default function StudentWorkspacePage() {
 
               <button
                 type="button"
+                onClick={handleToggleFind}
+                title="Find in code"
+                className={`px-2.5 py-1.5 rounded-lg border text-xs font-medium flex items-center gap-1 cursor-pointer transition-colors ${
+                  showFind
+                    ? "bg-indigo-50 border-indigo-200 text-indigo-700"
+                    : "bg-white border-slate-200 hover:bg-slate-100 text-slate-700"
+                }`}
+              >
+                <Search className="w-3.5 h-3.5" />
+                Find
+              </button>
+
+              <button
+                type="button"
                 onClick={handleManualSave}
                 className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 text-xs font-medium flex items-center gap-1 cursor-pointer"
               >
@@ -847,6 +933,75 @@ export default function StudentWorkspacePage() {
             </div>
           </div>
 
+          {/* Find in Code Bar */}
+          {showFind && (
+            <div className="px-3 py-2 bg-slate-100 border-b border-slate-200 flex flex-wrap items-center gap-2 shrink-0">
+              <div className="relative flex-1 min-w-[180px]">
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                <input
+                  ref={findInputRef}
+                  type="text"
+                  value={findQuery}
+                  onChange={(e) => {
+                    setFindQuery(e.target.value);
+                    setFindMatchIndex(0);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      focusMatch(
+                        e.shiftKey ? safeMatchIndex - 1 : safeMatchIndex + 1
+                      );
+                    } else if (e.key === "Escape") {
+                      setShowFind(false);
+                    }
+                  }}
+                  placeholder="Find tag, class, or text in code..."
+                  className="w-full pl-8 pr-3 py-1.5 rounded-lg border border-slate-300 bg-white text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              <span className="text-xs font-medium text-slate-600 min-w-[85px] text-center">
+                {findQuery.trim()
+                  ? findMatches.length > 0
+                    ? `${safeMatchIndex + 1} / ${findMatches.length} (${findMatches[safeMatchIndex].file.toUpperCase()})`
+                    : "0 matches"
+                  : "Type to find"}
+              </span>
+
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  disabled={findMatches.length === 0}
+                  onClick={() => focusMatch(safeMatchIndex - 1)}
+                  title="Previous match"
+                  className="px-2 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 disabled:opacity-40 text-xs font-medium text-slate-700 flex items-center gap-1 cursor-pointer disabled:cursor-not-allowed"
+                >
+                  <ChevronUp className="w-3.5 h-3.5" />
+                  Prev
+                </button>
+                <button
+                  type="button"
+                  disabled={findMatches.length === 0}
+                  onClick={() => focusMatch(safeMatchIndex + 1)}
+                  title="Next match"
+                  className="px-2 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 disabled:opacity-40 text-xs font-medium text-slate-700 flex items-center gap-1 cursor-pointer disabled:cursor-not-allowed"
+                >
+                  <ChevronDown className="w-3.5 h-3.5" />
+                  Next
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowFind(false)}
+                  title="Close find bar"
+                  className="p-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-500 hover:text-slate-800 cursor-pointer"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Editors + Preview Split */}
           <div className="flex-1 min-h-0 flex flex-col">
             {/* Code Editors Area */}
@@ -870,6 +1025,7 @@ export default function StudentWorkspacePage() {
                       <span className="text-slate-400">{htmlLines} lines</span>
                     </div>
                     <textarea
+                      ref={htmlTextareaRef}
                       value={htmlCode}
                       onChange={(e) => updateHtmlCode(e.target.value)}
                       spellCheck={false}
@@ -889,6 +1045,7 @@ export default function StudentWorkspacePage() {
                       <span className="text-slate-400">{cssLines} lines</span>
                     </div>
                     <textarea
+                      ref={cssTextareaRef}
                       value={cssCode}
                       onChange={(e) => updateCssCode(e.target.value)}
                       spellCheck={false}
