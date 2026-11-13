@@ -384,7 +384,7 @@ export default function StudentWorkspacePage() {
     entries: Array<{ html: string; css: string }>;
     index: number;
   }>({ entries: [], index: -1 });
-  const [activeTab, setActiveTab] = useState<"html" | "css" | "split">("html");
+  const [activeTab, setActiveTab] = useState<"html" | "css" | "split">("split");
   const [showPreview, setShowPreview] = useState(true);
   const [previewKey, setPreviewKey] = useState(0);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">(
